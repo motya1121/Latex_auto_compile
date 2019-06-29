@@ -1,5 +1,4 @@
 # Search updated Tex
 
-This program can search recently updated Tex files in Dropbox.
-And this program can register the file to TexWatch service.
+最近更新されたTexファイルを検索し，watch.confの書き換えを行うスクリプトです．
 

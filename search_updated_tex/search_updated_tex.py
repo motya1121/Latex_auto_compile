@@ -8,11 +8,12 @@ import sys
 import pathlib
 import shutil
 import re
+import argparse
 from datetime import datetime as dt
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-DEBUG = False
+DEBUG = True
 
 
 def search_tex_file(search_path):
@@ -65,34 +66,68 @@ def search_tex_file(search_path):
     return tex_file_list
 
 
+def parse_config(args):
+    '''設定のパース
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        argparseで得られた結果
+
+    Returns
+    -------
+    成功の場合: tuple (string)
+        config_file, search_path
+    失敗の場合: tuple (int)
+        -1, -1
+    '''
+
+    if args.config_file is None:
+        path_list = os.getcwd().split("/")
+        path_list[-1] = "tex_watch"
+        config_file = ""
+        for path in path_list:
+            config_file += path + "/"
+        config_file += "watch.conf"
+    elif os.path.isfile(args.config_file):
+        config_file = args.config_file
+    elif os.path.isdir(args.config_file):
+        if args.config_file[-1] != "/":
+            config_file = args.config_file + "/"
+        else:
+            config_file = args.config_file
+        if os.path.isfile(config_file + "watch.conf"):
+            config_file = config_file + "watch.conf"
+        else:
+            return -1, -1
+    else:
+        return -1, -1
+
+    if args.search_path is None:
+        search_path = "/"
+    elif os.path.isdir(args.search_path):
+        if args.search_path[-1] == "/":
+            search_path = args.search_path[:-1]
+        else:
+            search_path = args.search_path
+    else:
+        return -1, -1
+
+    return config_file, search_path
+
+
 # MAIN
+parser = argparse.ArgumentParser(description='最近更新されたTexファイルの検索')
+parser.add_argument('-cf', '--config_file', help="Configファイルの位置")
+parser.add_argument('-s', '--search_path', help="検索するディレクトリ")
+args = parser.parse_args()
 
-args = sys.argv
-if len(args) == 3 and os.path.exists(args[1]) and os.path.isfile(args[2]):
-    SEARCH_ROOT_PATH = args[1]
-    TEX_WATCH_PATH = args[2]
-else:
-    print("引数がない，もしくは指定されたPATHが存在しないため，デフォルトの値を使用します．\n")
-    # Mac
-    # SEARCH_ROOT_PATH = "/Users/motya/Dropbox/Workspace/aws2/Tex/search_updated_tex"
-    SEARCH_ROOT_PATH = "/Users/motya/Dropbox/TMCIT/advanced_courses"
-    TEX_WATCH_PATH = "/Users/motya/Dropbox/Workspace/aws2/Tex/watch/watch.conf"
-
-    # Win
-    # SEARCH_ROOT_PATH = "/mnt/c/Dropbox/Workspace/aws2/Tex/search_updated_tex"
-    # SEARCH_ROOT_PATH = "/mnt/c/Dropbox/TMCIT/advanced_courses"
-    # TEX_WATCH_PATH = "/mnt/c/Dropbox/Workspace/aws2/Tex/watch/watch.conf"
-
-    # AWS(Ubuntu)
-    # SEARCH_ROOT_PATH = "/home/ubuntu/Dropbox/TMCIT/advanced_courses"
-    # TEX_WATCH_PATH = "/home/ubuntu/Tex/tex_watch/watch.conf"
+# check path
+config_file, search_path = parse_config(args)
 
 # Search
-
-print("「{0}」内のディレクトリを検索します．".format(SEARCH_ROOT_PATH), flush=True)
-
-tex_file_list = search_tex_file(SEARCH_ROOT_PATH)
-
+print("「{0}」内のディレクトリを検索します．".format(search_path), flush=True)
+tex_file_list = search_tex_file(search_path)
 tex_file_list_sorted = sorted(tex_file_list,
                               key=lambda x: x['st_mtime'],
                               reverse=True)
@@ -134,31 +169,36 @@ while True:
         break
     else:
         print("\nERROR!!")
-        print("Tex_watchに登録したいファイルの番号を入植してください．")
+        print("Tex_watchに登録したいファイルの番号を入力してください．")
         print("存在しない or 登録しない場合はｎを入力してください．")
 
 # regist
-if os.path.isfile(TEX_WATCH_PATH + ".bak") is False:
-    shutil.copyfile(TEX_WATCH_PATH, TEX_WATCH_PATH + ".bak")
+if os.path.isfile(config_file + ".bak") is False:
+    shutil.copyfile(config_file, config_file + ".bak")
     print("バックアップファイルが存在しなかったため，作成しました．")
 
-with open(TEX_WATCH_PATH, 'r', encoding='utf-8') as conf_file:
+with open(config_file, 'r', encoding='utf-8') as conf_file:
     conf_file_lines = conf_file.readlines()
 
 for i in range(0, len(conf_file_lines)):
     pattern = '^TEX_DIR_PATH'
     result = re.match(pattern, conf_file_lines[i])
     if result:
-        conf_file_lines[i] = 'TEX_DIR_PATH="' + tex_file_dict["path"] + '/"\n'
+        conf_file_lines[i] = 'TEX_DIR_PATH=' + tex_file_dict["path"] + '\n'
 
-    pattern = '^TEX_TOP_FILE_NAME'
+    pattern = '^MASTER_TEX_FILE_NAME'
     result = re.match(pattern, conf_file_lines[i])
     if result:
-        conf_file_lines[i] = 'TEX_TOP_FILE_NAME="' + \
-            tex_file_dict["file_name"] + '"\n'
+        conf_file_lines[i] = 'MASTER_TEX_FILE_NAME=' + tex_file_dict["file_name"] + '\n'
 
-with open(TEX_WATCH_PATH, 'w', encoding='utf-8') as conf_file:
+with open(config_file, 'w', encoding='utf-8') as conf_file:
     conf_file.writelines(conf_file_lines)
 
 print("please execute")
-print("sudo service tex_auto_typeset restart")
+watch_path = ""
+path_list = config_file.split("/")
+for i in range(0, len(path_list) - 1):
+    watch_path += path_list[i] + "/"
+
+print("python {0}watch.py -cf {1}".format(watch_path, config_file))
+
