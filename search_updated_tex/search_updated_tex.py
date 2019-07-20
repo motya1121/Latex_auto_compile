@@ -13,7 +13,7 @@ from datetime import datetime as dt
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-DEBUG = True
+DEBUG = False
 
 
 def search_tex_file(search_path):
