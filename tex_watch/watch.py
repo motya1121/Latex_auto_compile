@@ -111,8 +111,7 @@ try:
     while True:
         if check_update(mtime_list):
             # tex to dvi
-            print("updated")
-            print(datetime.datetime.now())
+            print("[update] {0}{1}.tex {2}".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME, datetime.datetime.now()))
             cmd = "cd {0} && platex -interaction nonstopmode {0}{1}.tex > {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
             process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
 
@@ -127,14 +126,15 @@ try:
                         print_flag = 1
                         error_flag = True
                     if print_flag != 0:
-                        print(line)
+                        print(line.replace("\n",""))
                         print_flag += 1
                     if print_flag == 10:
                         print_flag = 0
 
             if error_flag is False:
+                # make pdf
                 cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
-                process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
+                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
                 with open(os.getcwd() + "result.txt", "w") as result_file:
                     result_file.write("sucess")
             else:
