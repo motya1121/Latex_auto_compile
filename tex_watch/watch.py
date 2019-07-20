@@ -140,6 +140,8 @@ try:
             else:
                 with open(os.getcwd() + "result.txt", "w") as result_file:
                     result_file.write("error")
+                # delete aux files
+                os.remove("{0}{1}.aux".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME))
         time.sleep(3)
 except KeyboardInterrupt:
     print('動作を停止しました．')
