@@ -116,7 +116,7 @@ try:
             process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
 
             # check log
-            with open(TEX_DIR_PATH + "output.txt", "r", encoding="utf8",errors='ignore') as logfile:
+            with open(TEX_DIR_PATH + "output.txt", "r", encoding="utf8", errors='ignore') as logfile:
                 line_list = logfile.readlines()
                 print_flag = 0
                 error_flag = False
@@ -135,11 +135,7 @@ try:
                 # make pdf
                 cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
                 subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-                with open(os.getcwd() + "result.txt", "w") as result_file:
-                    result_file.write("sucess")
             else:
-                with open(os.getcwd() + "result.txt", "w") as result_file:
-                    result_file.write("error")
                 # delete aux files
                 os.remove("{0}{1}.aux".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME))
         time.sleep(3)
