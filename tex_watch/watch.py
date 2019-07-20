@@ -117,7 +117,7 @@ try:
             process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
 
             # check log
-            with open(TEX_DIR_PATH + "output.txt", "r") as logfile:
+            with open(TEX_DIR_PATH + "output.txt", "r", encoding="utf8",errors='ignore') as logfile:
                 line_list = logfile.readlines()
                 print_flag = 0
                 error_flag = False

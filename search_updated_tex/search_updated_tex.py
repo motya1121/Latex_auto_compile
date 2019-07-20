@@ -89,6 +89,10 @@ def parse_config(args):
         for path in path_list:
             config_file += path + "/"
         config_file += "watch.conf"
+        if os.path.isfile(config_file):
+            pass
+        else:
+            return - 1, -1
     elif os.path.isfile(args.config_file):
         config_file = args.config_file
     elif os.path.isdir(args.config_file):
@@ -103,8 +107,9 @@ def parse_config(args):
     else:
         return -1, -1
 
+    print("args.search_path:" + args.search_path)
     if args.search_path is None:
-        search_path = "/"
+        search_path = os.getcwd()
     elif os.path.isdir(args.search_path):
         if args.search_path[-1] == "/":
             search_path = args.search_path[:-1]
@@ -119,11 +124,15 @@ def parse_config(args):
 # MAIN
 parser = argparse.ArgumentParser(description='最近更新されたTexファイルの検索')
 parser.add_argument('-cf', '--config_file', help="Configファイルの位置")
-parser.add_argument('-s', '--search_path', help="検索するディレクトリ")
+parser.add_argument('-s', '--search_path', help="検索するディレクトリ", default=os.getcwd())
 args = parser.parse_args()
 
 # check path
 config_file, search_path = parse_config(args)
+
+if config_file == -1:
+    print("[error] エラーが発生しました．")
+    exit()
 
 # Search
 print("「{0}」内のディレクトリを検索します．".format(search_path), flush=True)
@@ -173,6 +182,7 @@ while True:
         print("存在しない or 登録しない場合はｎを入力してください．")
 
 # regist
+print("config_file:" + config_file)
 if os.path.isfile(config_file + ".bak") is False:
     shutil.copyfile(config_file, config_file + ".bak")
     print("バックアップファイルが存在しなかったため，作成しました．")
