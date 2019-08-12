@@ -9,6 +9,7 @@ import configparser
 import datetime
 import subprocess
 import time
+import img2pdf
 
 
 def parse_config(args):
@@ -84,7 +85,17 @@ def check_update(mtime_list):
         if mtimes[0].stat().st_mtime != mtimes[1]:
             mtimes[1] = mtimes[0].stat().st_mtime
             is_update = True
+            if str(mtimes[0]).split("/")[-1] == FIGURE_DIR:
+                update_figure()
     return is_update
+
+
+def update_figure():
+    fig_files = [TEX_DIR_PATH + FIGURE_DIR + "/" + f.name for f in os.scandir(TEX_DIR_PATH + FIGURE_DIR) if f.is_file() and f.name.split(".")[-1] in ["png", "jpg"]]
+    for fig in fig_files:
+        print(fig[:fig.rfind(".")] + ".pdf")
+        with open(fig[:fig.rfind(".")] + ".pdf", "wb") as f:
+            f.write(img2pdf.convert(fig))
 
 
 parser = argparse.ArgumentParser(description='Latexの自動タイプセット')
