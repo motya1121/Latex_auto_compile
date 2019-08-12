@@ -8,7 +8,6 @@ import sys
 import pathlib
 import shutil
 import re
-import argparse
 from datetime import datetime as dt
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -132,9 +131,7 @@ def update(args):
     # Search
     print("「{0}」内のディレクトリを検索します．".format(search_path), flush=True)
     tex_file_list = search_tex_file(search_path)
-    tex_file_list_sorted = sorted(tex_file_list,
-                                key=lambda x: x['st_mtime'],
-                                reverse=True)
+    tex_file_list_sorted = sorted(tex_file_list, key=lambda x: x['st_mtime'], reverse=True)
 
     # Plint
     print("\n最近更新された最大10件のデータを表示します．")
