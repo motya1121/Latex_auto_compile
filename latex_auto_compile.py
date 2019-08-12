@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/home/ubuntu/.pyenv/shims/python
 # coding: utf-8
 
 import os

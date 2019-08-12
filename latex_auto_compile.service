@@ -2,7 +2,7 @@
 Description = Latex_auto_compile
 
 [Service]
-ExecStart = /path/latex_auto_compile.py -t watch
+ExecStart = /path/latex_auto_compile.sh
 Restart = always
 Type = simple
 

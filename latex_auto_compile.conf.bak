@@ -1,9 +1,0 @@
-[LATEX]
-# TEX_DIR_PATH: Texファイルが入っているディレクトリのパス
-# 最後にはスラッシュを付ける
-TEX_DIR_PATH=/Users/motya/GitHub/Latex_auto_compile/sample_tex
-
-# TEX_TOP_FILE_NAME: タイプセットを実行するファイルの名前
-MASTER_TEX_FILE_NAME=report.tex
-
-FIGURE_DIR=figures
