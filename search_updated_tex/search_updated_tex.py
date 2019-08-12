@@ -121,94 +121,89 @@ def parse_config(args):
     return config_file, search_path
 
 
-# MAIN
-parser = argparse.ArgumentParser(description='最近更新されたTexファイルの検索')
-parser.add_argument('-cf', '--config_file', help="Configファイルの位置")
-parser.add_argument('-s', '--search_path', help="検索するディレクトリ", default=os.getcwd())
-args = parser.parse_args()
+def update(args):
+    # check path
+    config_file, search_path = parse_config(args)
 
-# check path
-config_file, search_path = parse_config(args)
+    if config_file == -1:
+        print("[error] エラーが発生しました．")
+        exit()
 
-if config_file == -1:
-    print("[error] エラーが発生しました．")
-    exit()
+    # Search
+    print("「{0}」内のディレクトリを検索します．".format(search_path), flush=True)
+    tex_file_list = search_tex_file(search_path)
+    tex_file_list_sorted = sorted(tex_file_list,
+                                key=lambda x: x['st_mtime'],
+                                reverse=True)
 
-# Search
-print("「{0}」内のディレクトリを検索します．".format(search_path), flush=True)
-tex_file_list = search_tex_file(search_path)
-tex_file_list_sorted = sorted(tex_file_list,
-                              key=lambda x: x['st_mtime'],
-                              reverse=True)
+    # Plint
+    print("\n最近更新された最大10件のデータを表示します．")
+    i = 0
+    for tex_file_dict in tex_file_list_sorted:
+        print("[{0}]".format(i))
+        print("path:{0}/{1}, 更新日時:{2}".format(
+            tex_file_dict["path"], tex_file_dict["file_name"],
+            dt.fromtimestamp(
+                tex_file_dict["st_mtime"]).strftime('%Y/%m/%d-%H:%M:%S')))
+        if i >= 10:
+            break
+        else:
+            i += 1
 
-# Plint
-print("\n最近更新された最大10件のデータを表示します．")
-i = 0
-for tex_file_dict in tex_file_list_sorted:
-    print("[{0}]".format(i))
-    print("path:{0}/{1}, 更新日時:{2}".format(
-        tex_file_dict["path"], tex_file_dict["file_name"],
-        dt.fromtimestamp(
-            tex_file_dict["st_mtime"]).strftime('%Y/%m/%d-%H:%M:%S')))
-    if i >= 10:
-        break
-    else:
-        i += 1
+    # Select
+    print("\nTex_watchに登録したいファイルの番号を入植してください．")
+    print("存在しない or 登録しない場合はｎを入力してください．")
+    while True:
+        tex_number = input('>> ')
 
-# Select
-print("\nTex_watchに登録したいファイルの番号を入植してください．")
-print("存在しない or 登録しない場合はｎを入力してください．")
-while True:
-    tex_number = input('>> ')
+        if tex_number in ["n", "N"]:
+            print("\nOK!")
+            print("何も登録せず終了します．")
+            sys.exit()
+        elif 0 <= int(tex_number) and int(tex_number) < i:
+            tex_file_dict = tex_file_list_sorted[int(tex_number)]
+            print("\nOK!")
+            print("[{3}]:path:{0}/{1}, 更新日時:{2}".format(
+                tex_file_dict["path"],
+                tex_file_dict["file_name"],
+                dt.fromtimestamp(tex_file_dict["st_mtime"]).strftime(
+                    '%Y/%m/%d-%H:%M:%S'),
+                int(tex_number)))
+            print("をtex_watchに登録します．")
+            break
+        else:
+            print("\nERROR!!")
+            print("Tex_watchに登録したいファイルの番号を入力してください．")
+            print("存在しない or 登録しない場合はｎを入力してください．")
 
-    if tex_number in ["n", "N"]:
-        print("\nOK!")
-        print("何も登録せず終了します．")
-        sys.exit()
-    elif 0 <= int(tex_number) and int(tex_number) < i:
-        tex_file_dict = tex_file_list_sorted[int(tex_number)]
-        print("\nOK!")
-        print("[{3}]:path:{0}/{1}, 更新日時:{2}".format(
-            tex_file_dict["path"],
-            tex_file_dict["file_name"],
-            dt.fromtimestamp(tex_file_dict["st_mtime"]).strftime(
-                '%Y/%m/%d-%H:%M:%S'),
-            int(tex_number)))
-        print("をtex_watchに登録します．")
-        break
-    else:
-        print("\nERROR!!")
-        print("Tex_watchに登録したいファイルの番号を入力してください．")
-        print("存在しない or 登録しない場合はｎを入力してください．")
+    # regist
+    print("config_file:" + config_file)
+    if os.path.isfile(config_file + ".bak") is False:
+        shutil.copyfile(config_file, config_file + ".bak")
+        print("バックアップファイルが存在しなかったため，作成しました．")
 
-# regist
-print("config_file:" + config_file)
-if os.path.isfile(config_file + ".bak") is False:
-    shutil.copyfile(config_file, config_file + ".bak")
-    print("バックアップファイルが存在しなかったため，作成しました．")
+    with open(config_file, 'r', encoding='utf-8') as conf_file:
+        conf_file_lines = conf_file.readlines()
 
-with open(config_file, 'r', encoding='utf-8') as conf_file:
-    conf_file_lines = conf_file.readlines()
+    for i in range(0, len(conf_file_lines)):
+        pattern = '^TEX_DIR_PATH'
+        result = re.match(pattern, conf_file_lines[i])
+        if result:
+            conf_file_lines[i] = 'TEX_DIR_PATH=' + tex_file_dict["path"] + '\n'
 
-for i in range(0, len(conf_file_lines)):
-    pattern = '^TEX_DIR_PATH'
-    result = re.match(pattern, conf_file_lines[i])
-    if result:
-        conf_file_lines[i] = 'TEX_DIR_PATH=' + tex_file_dict["path"] + '\n'
+        pattern = '^MASTER_TEX_FILE_NAME'
+        result = re.match(pattern, conf_file_lines[i])
+        if result:
+            conf_file_lines[i] = 'MASTER_TEX_FILE_NAME=' + tex_file_dict["file_name"] + '\n'
 
-    pattern = '^MASTER_TEX_FILE_NAME'
-    result = re.match(pattern, conf_file_lines[i])
-    if result:
-        conf_file_lines[i] = 'MASTER_TEX_FILE_NAME=' + tex_file_dict["file_name"] + '\n'
+    with open(config_file, 'w', encoding='utf-8') as conf_file:
+        conf_file.writelines(conf_file_lines)
 
-with open(config_file, 'w', encoding='utf-8') as conf_file:
-    conf_file.writelines(conf_file_lines)
+    print("please execute")
+    watch_path = ""
+    path_list = config_file.split("/")
+    for i in range(0, len(path_list) - 1):
+        watch_path += path_list[i] + "/"
 
-print("please execute")
-watch_path = ""
-path_list = config_file.split("/")
-for i in range(0, len(path_list) - 1):
-    watch_path += path_list[i] + "/"
-
-print("python {0}watch.py -cf {1}".format(watch_path, config_file))
+    print("python {0}watch.py -cf {1}".format(watch_path, config_file))
 

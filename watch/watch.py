@@ -4,12 +4,17 @@
 import os
 import sys
 import pathlib
-import argparse
 import configparser
 import datetime
 import subprocess
 import time
 import img2pdf
+
+CONFIG_FILE = ""
+TEX_DIR_PATH = ""
+MASTER_TEX_FILE_NAME = ""
+FILE_NAME_LIST = ""
+FIGURE_DIR = ""
 
 
 def parse_config(args):
@@ -93,62 +98,58 @@ def check_update(mtime_list):
 def update_figure():
     fig_files = [TEX_DIR_PATH + FIGURE_DIR + "/" + f.name for f in os.scandir(TEX_DIR_PATH + FIGURE_DIR) if f.is_file() and f.name.split(".")[-1] in ["png", "jpg"]]
     for fig in fig_files:
-        print(fig[:fig.rfind(".")] + ".pdf")
         with open(fig[:fig.rfind(".")] + ".pdf", "wb") as f:
             f.write(img2pdf.convert(fig))
 
 
-parser = argparse.ArgumentParser(description='Latexの自動タイプセット')
-parser.add_argument('-cf', '--config_file', help="Configファイルの位置")
-args = parser.parse_args()
+def watch(args):
+    TEX_DIR_PATH, MASTER_TEX_FILE_NAME, FILE_NAME_LIST, FIGURE_DIR = parse_config(args)
 
-TEX_DIR_PATH, MASTER_TEX_FILE_NAME, FILE_NAME_LIST, FIGURE_DIR = parse_config(args)
+    if TEX_DIR_PATH == -1:
+        print("[error] エラーが発生したため，処理を停止します．")
+        sys.exit()
 
-if TEX_DIR_PATH == -1:
-    print("[error] エラーが発生したため，処理を停止します．")
-    sys.exit()
+    # 更新時間取得
+    mtime_list = []
+    for FILE_NAME in FILE_NAME_LIST:
+        p_temp = pathlib.Path(TEX_DIR_PATH + FILE_NAME)
+        mtime_list.append([p_temp, p_temp.stat().st_mtime])
 
-# 更新時間取得
-mtime_list = []
-for FILE_NAME in FILE_NAME_LIST:
-    p_temp = pathlib.Path(TEX_DIR_PATH + FILE_NAME)
+    p_temp = pathlib.Path(TEX_DIR_PATH + FIGURE_DIR)
     mtime_list.append([p_temp, p_temp.stat().st_mtime])
 
-p_temp = pathlib.Path(TEX_DIR_PATH + FIGURE_DIR)
-mtime_list.append([p_temp, p_temp.stat().st_mtime])
+    # watch
+    try:
+        while True:
+            if check_update(mtime_list):
+                # tex to dvi
+                print("[update] {0}{1}.tex {2}".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME, datetime.datetime.now()))
+                cmd = "cd {0} && platex -interaction nonstopmode {0}{1}.tex > {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
+                process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
 
-# watch
-try:
-    while True:
-        if check_update(mtime_list):
-            # tex to dvi
-            print("[update] {0}{1}.tex {2}".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME, datetime.datetime.now()))
-            cmd = "cd {0} && platex -interaction nonstopmode {0}{1}.tex > {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
-            process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
+                # check log
+                with open(TEX_DIR_PATH + "output.txt", "r", encoding="utf8", errors='ignore') as logfile:
+                    line_list = logfile.readlines()
+                    print_flag = 0
+                    error_flag = False
+                    for line in line_list:
+                        if line[0] == "!":
+                            print("[error]")
+                            print_flag = 1
+                            error_flag = True
+                        if print_flag != 0:
+                            print(line.replace("\n", ""))
+                            print_flag += 1
+                        if print_flag == 10:
+                            print_flag = 0
 
-            # check log
-            with open(TEX_DIR_PATH + "output.txt", "r", encoding="utf8", errors='ignore') as logfile:
-                line_list = logfile.readlines()
-                print_flag = 0
-                error_flag = False
-                for line in line_list:
-                    if line[0] == "!":
-                        print("[error]")
-                        print_flag = 1
-                        error_flag = True
-                    if print_flag != 0:
-                        print(line.replace("\n",""))
-                        print_flag += 1
-                    if print_flag == 10:
-                        print_flag = 0
-
-            if error_flag is False:
-                # make pdf
-                cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
-                subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-            else:
-                # delete aux files
-                os.remove("{0}{1}.aux".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME))
-        time.sleep(3)
-except KeyboardInterrupt:
-    print('動作を停止しました．')
+                if error_flag is False:
+                    # make pdf
+                    cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
+                    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+                else:
+                    # delete aux files
+                    os.remove("{0}{1}.aux".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME))
+            time.sleep(3)
+    except KeyboardInterrupt:
+        print('動作を停止しました．')
