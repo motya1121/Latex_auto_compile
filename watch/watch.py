@@ -2,16 +2,42 @@
 # coding: utf-8
 
 import os
-import sys
-import pathlib
 import configparser
 import datetime
 import subprocess
 import time
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler
 import img2pdf
 
 
-class SETTING():
+class WATCH():
+
+    def __init__(self, config_file_path: str):
+        self.settings = SETTINGS(config_file_path)
+
+    def watch(self):
+        event_handler = TexHandler(self.settings)
+        Tex_observer = Observer()
+        Tex_observer.schedule(event_handler, self.settings.tex_dir_path, recursive=True)
+        Tex_observer.start()
+
+        event_handler = FigHandler(self.settings)
+        Fig_observer = Observer()
+        Fig_observer.schedule(event_handler, self.settings.figure_dir_path, recursive=True)
+        Fig_observer.start()
+
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            Tex_observer.stop()
+            Fig_observer.stop()
+        Tex_observer.join()
+        Fig_observer.join()
+
+
+class SETTINGS():
 
     def __init__(self, config_file_path: str):
         self.config_file_path = ""
@@ -76,7 +102,7 @@ class SETTING():
             if config['LATEX']['FIGURE_DIR'] is None:
                 self.figure_dir_path = ""
             elif os.path.isdir(self.tex_dir_path + config['LATEX']['FIGURE_DIR']):
-                self.figure_dir_path = config['LATEX']['FIGURE_DIR']
+                self.figure_dir_path = self.tex_dir_path + config['LATEX']['FIGURE_DIR']
             else:
                 self.warning_str.append("[warning] 設定ファイルで指定されたディレクトリ(FIGURE_DIR)が見つかりませんでした．")
         except KeyError:
@@ -87,96 +113,87 @@ class SETTING():
             if config['LATEX']['LISTING_DIR'] is None:
                 self.listing_dir_path = ""
             elif os.path.isdir(self.tex_dir_path + config['LATEX']['LISTING_DIR']):
-                self.listing_dir_path = config['LATEX']['LISTING_DIR']
+                self.listing_dir_path = self.tex_dir_path + config['LATEX']['LISTING_DIR']
             else:
                 self.warning_str.append("[warning] 設定ファイルで指定されたディレクトリ(FIGURE_DIR)が見つかりませんでした．")
         except KeyError:
             self.listing_dir_path = ""
 
     def __str__(self):
-        return "##### SETTING value #####\n\tconf file path:{}\n\tTexDir:{}\n\tMasterTex:{}\n\tFigDir:{}\n\tLisDir:{}\n\n\terror:{},\n\twarning:{}".format(
+        return "##### SETTING value #####\n\tconf file path:{}\n\tTexDir:{}\n\tMasterTex:{}\n\tFigDir:{}\n\tLisDir:{}\n\n\terror:{}\n\twarning:{}".format(
             self.config_file_path, self.tex_dir_path, self.master_tex_file_path, self.figure_dir_path,
             self.listing_dir_path, ",".join(self.error_str), ",".join(self.warning_str))
 
 
-def check_update(mtime_list):
-    is_update = False
-    for mtimes in mtime_list:
-        if mtimes[0].stat().st_mtime != mtimes[1]:
-            mtimes[1] = mtimes[0].stat().st_mtime
-            is_update = True
-            if str(mtimes[0]).split("/")[-1] == FIGURE_DIR:
-                update_figure()
-    return is_update
+class TexHandler(PatternMatchingEventHandler):
 
+    def __init__(self, settings: SETTINGS, patterns: list = ["*.tex"]):
+        super(TexHandler, self).__init__(patterns=patterns)
+        self.settings = settings
 
-def update_figure():
-    fig_files = [
-        TEX_DIR_PATH + FIGURE_DIR + "/" + f.name
-        for f in os.scandir(TEX_DIR_PATH + FIGURE_DIR)
-        if f.is_file() and f.name.split(".")[-1] in ["png", "jpg"]
-    ]
-    for fig in fig_files:
-        with open(fig[:fig.rfind(".")] + ".pdf", "wb") as f:
-            f.write(img2pdf.convert(fig))
+    def _run_typeset(self):
+        # tex to dvi
+        print("[update] {0} {1}".format(self.settings.master_tex_file_path, datetime.datetime.now()), flush=True)
+        cmd = "cd {0} && platex -interaction nonstopmode {1} > {0}output.txt".format(
+            self.settings.tex_dir_path, self.settings.master_tex_file_path)
+        subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]
 
-
-# find tex files
-        FILE_NAME_LIST = [f.name for f in os.scandir(TEX_DIR_PATH) if f.is_file() and f.name.split(".")[-1] == "tex"]
-
-
-def watch(args):
-    TEX_DIR_PATH, MASTER_TEX_FILE_NAME, FILE_NAME_LIST, FIGURE_DIR = parse_config(args)
-
-    if TEX_DIR_PATH == -1:
-        print("[error] エラーが発生したため，処理を停止します．")
-        sys.exit()
-
-    # 更新時間取得
-    mtime_list = []
-    for FILE_NAME in FILE_NAME_LIST:
-        p_temp = pathlib.Path(TEX_DIR_PATH + FILE_NAME)
-        mtime_list.append([p_temp, p_temp.stat().st_mtime])
-
-    p_temp = pathlib.Path(TEX_DIR_PATH + FIGURE_DIR)
-    mtime_list.append([p_temp, p_temp.stat().st_mtime])
-
-    # watch
-    try:
-        while True:
-            if check_update(mtime_list):
-                # tex to dvi
-                print(
-                    "[update] {0}{1}.tex {2}".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME, datetime.datetime.now()),
-                    flush=True)
-                cmd = "cd {0} && platex -interaction nonstopmode {0}{1}.tex > {0}output.txt".format(
-                    TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
-                process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
-
-                # check log
-                with open(TEX_DIR_PATH + "output.txt", "r", encoding="utf8", errors='ignore') as logfile:
-                    line_list = logfile.readlines()
+        # check log
+        with open(self.settings.tex_dir_path + "output.txt", "r", encoding="utf8", errors='ignore') as logfile:
+            line_list = logfile.readlines()
+            print_flag = 0
+            error_flag = False
+            for line in line_list:
+                if line[0] == "!":
+                    print("[error]")
+                    print_flag = 1
+                    error_flag = True
+                if print_flag != 0:
+                    print(line.replace("\n", ""))
+                    print_flag += 1
+                if print_flag == 10:
                     print_flag = 0
-                    error_flag = False
-                    for line in line_list:
-                        if line[0] == "!":
-                            print("[error]")
-                            print_flag = 1
-                            error_flag = True
-                        if print_flag != 0:
-                            print(line.replace("\n", ""))
-                            print_flag += 1
-                        if print_flag == 10:
-                            print_flag = 0
 
-                if error_flag is False:
-                    # make pdf
-                    cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(
-                        TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
-                    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
-                else:
-                    # delete aux files
-                    os.remove("{0}{1}.aux".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME))
-            time.sleep(3)
-    except KeyboardInterrupt:
-        print('動作を停止しました．')
+        if error_flag is False:
+            # make pdf
+            cmd = "cd {0} && dvipdfmx -o {1}.pdf {1}.dvi >> {0}output.txt".format(
+                self.settings.tex_dir_path, self.settings.master_tex_file_path[:-4])
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+        else:
+            # delete aux files
+            os.remove("{0}.aux".format(self.settings.master_tex_file_path[:-4]))
+
+    def on_moved(self, event):
+        self._run_typeset()
+
+    def on_created(self, event):
+        self._run_typeset()
+
+    def on_deleted(self, event):
+        self._run_typeset()
+
+    def on_modified(self, event):
+        self._run_typeset()
+
+
+class FigHandler(PatternMatchingEventHandler):
+
+    def __init__(self, settings: SETTINGS, patterns: list = ["*.png", "*.jpg"]):
+        super(FigHandler, self).__init__(patterns=patterns)
+        self.settings = settings
+
+    def _run_convert(self, pic_file_path):
+        try:
+            with open(pic_file_path[:pic_file_path.rfind(".")] + ".pdf", "wb") as f:
+                f.write(img2pdf.convert(pic_file_path))
+        except Exception:
+            pass
+
+    def on_moved(self, event):
+        self._run_convert(event.src_path)
+
+    def on_created(self, event):
+        self._run_convert(event.src_path)
+
+    def on_modified(self, event):
+        self._run_convert(event.src_path)

@@ -15,5 +15,6 @@ parser.add_argument('-s', '--search_path', help="検索するディレクトリ"
 '''
 
 args = parser.parse_args()
-watch_setting = watch.SETTING(args.config_file)
-print(watch_setting)
+watch = watch.WATCH("bachelor_thesis.conf")
+print(watch.settings)
+watch.watch()
