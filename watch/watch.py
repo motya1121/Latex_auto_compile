@@ -10,78 +10,93 @@ import subprocess
 import time
 import img2pdf
 
-CONFIG_FILE = ""
-TEX_DIR_PATH = ""
-MASTER_TEX_FILE_NAME = ""
-FILE_NAME_LIST = ""
-FIGURE_DIR = ""
 
+class SETTING():
 
-def parse_config(args):
-    '''設定ファイルをパースする．なお，値チェックも行う
+    def __init__(self, config_file_path: str):
+        self.config_file_path = ""
+        self.tex_dir_path = ""
+        self.master_tex_file_path = ""
+        self.figure_dir_path = ""
+        self.listing_dir_path = ""
+        self.error_str = []
+        self.warning_str = []
+        self.SetConfigFilePath(config_file_path)
+        if len(self.error_str) == 0:
+            self.SetConfigValue()
 
-    Parameters
-    ----------
-    args : argparse.Namespace
-        argparseで得られた結果
+    def SetConfigFilePath(self, config_file_path: str):
+        error_flag = False
+        if config_file_path is None:
+            error_flag = True
+        elif config_file_path[0] == "/":
+            if os.path.isfile(config_file_path):
+                self.config_file_path = config_file_path
+            else:
+                error_flag = True
+        else:
+            if os.path.isfile(os.getcwd() + "/" + config_file_path):
+                self.config_file_path = os.getcwd() + "/" + config_file_path
+            else:
+                error_flag = True
+        if error_flag is True:
+            self.error_str.append("[error] 設定ファイルが見つかりませんでした．")
 
-    Returns
-    -------
-    成功の場合: tuple (string)
-        TEX_DIR_PATH, MASTER_TEX_FILE_NAME, FILE_NAME_LIST, FIGURE_DIR
-    失敗の場合: tuple (int)
-        -1, -1
-    '''
+    def SetConfigValue(self):
 
-    # check config file
-    CONFIG_FILE = ""
-    if args.config_file is None:
-        if os.path.isfile(os.getcwd() + "/watch.conf"):
-            CONFIG_FILE = os.getcwd() + "/watch.conf"
-    elif args.config_file[0] == "/":
-        if os.path.isfile(args.config_file):
-            CONFIG_FILE = args.config_file
-    else:
-        if os.path.isfile(os.getcwd() + "/" + args.config_file):
-            CONFIG_FILE = os.getcwd() + "/" + args.config_file
-    if CONFIG_FILE == "":
-        print("[error] 設定ファイルが見つかりませんでした．")
-        return -1
+        config = configparser.ConfigParser()
+        config.read(self.config_file_path, 'UTF-8')
 
-    # parse config
-    config = configparser.ConfigParser()
-    config.read(CONFIG_FILE, 'UTF-8')
-    if config['LATEX']['TEX_DIR_PATH'] is None:
-        print("['LATEX']['TEX_DIR_PATH']が存在しません")
-    elif os.path.isdir(config['LATEX']['TEX_DIR_PATH']):
-        TEX_DIR_PATH = config['LATEX']['TEX_DIR_PATH']
-        if TEX_DIR_PATH[-1] != "/":
-            TEX_DIR_PATH += "/"
-    else:
-        print("[error] 設定ファイルで指定されたディレクトリ(TEX_DIR_PATH)が見つかりませんでした．")
-        return -1
+        # check tex dir path
+        try:
+            if config['LATEX']['TEX_DIR_PATH'] is None:
+                self.error_str.append("['LATEX']['TEX_DIR_PATH']は必須項目です．")
+            elif os.path.isdir(config['LATEX']['TEX_DIR_PATH']):
+                self.tex_dir_path = config['LATEX']['TEX_DIR_PATH']
+                if self.tex_dir_path[-1] != "/":
+                    self.tex_dir_path += "/"
+            else:
+                self.error_str.append("[error] 設定ファイルで指定されたディレクトリ(TEX_DIR_PATH)が見つかりませんでした．")
+        except KeyError:
+            self.error_str.append("['LATEX']['TEX_DIR_PATH']が存在しません")
 
-    # find tex files
-    FILE_NAME_LIST = [f.name for f in os.scandir(TEX_DIR_PATH) if f.is_file() and f.name.split(".")[-1] == "tex"]
+        # check master tex file path
+        try:
+            if config['LATEX']['MASTER_TEX_FILE_NAME'] is None:
+                self.error_str.append("['LATEX']['MASTER_TEX_FILE_NAME']は必須項目です．")
+            elif os.path.isfile(self.tex_dir_path + config['LATEX']['MASTER_TEX_FILE_NAME']):
+                self.master_tex_file_path = self.tex_dir_path + config['LATEX']['MASTER_TEX_FILE_NAME']
+            else:
+                self.error_str.append("[error] 設定ファイルで指定されたファイル(MASTER_TEX_FILE_NAME)が見つかりませんでした．")
+        except KeyError:
+            self.error_str.append("['LATEX']['MASTER_TEX_FILE_NAME']が存在しません")
 
-    # check master tex file
-    if config['LATEX']['MASTER_TEX_FILE_NAME'] is None:
-        print("['LATEX']['MASTER_TEX_FILE_NAME']が存在しません")
-    elif os.path.isfile(TEX_DIR_PATH + config['LATEX']['MASTER_TEX_FILE_NAME']):
-        MASTER_TEX_FILE_NAME = config['LATEX']['MASTER_TEX_FILE_NAME']
-    else:
-        print("[error] 設定ファイルで指定されたファイル(MASTER_TEX_FILE_NAME)が見つかりませんでした．")
-        return - 1
-    MASTER_TEX_FILE_NAME = MASTER_TEX_FILE_NAME[0:MASTER_TEX_FILE_NAME.find(".")]
+        # check figure direstory(option)
+        try:
+            if config['LATEX']['FIGURE_DIR'] is None:
+                self.figure_dir_path = ""
+            elif os.path.isdir(self.tex_dir_path + config['LATEX']['FIGURE_DIR']):
+                self.figure_dir_path = config['LATEX']['FIGURE_DIR']
+            else:
+                self.warning_str.append("[warning] 設定ファイルで指定されたディレクトリ(FIGURE_DIR)が見つかりませんでした．")
+        except KeyError:
+            self.figure_dir_path = ""
 
-    # check figure direstory
-    FIGURE_DIR = ""
-    if config['LATEX']['FIGURE_DIR'] is None:
-        pass
-    elif os.path.isdir(TEX_DIR_PATH + config['LATEX']['FIGURE_DIR']):
-        FIGURE_DIR = config['LATEX']['FIGURE_DIR']
+        # check listing direstory(option)
+        try:
+            if config['LATEX']['LISTING_DIR'] is None:
+                self.listing_dir_path = ""
+            elif os.path.isdir(self.tex_dir_path + config['LATEX']['LISTING_DIR']):
+                self.listing_dir_path = config['LATEX']['LISTING_DIR']
+            else:
+                self.warning_str.append("[warning] 設定ファイルで指定されたディレクトリ(FIGURE_DIR)が見つかりませんでした．")
+        except KeyError:
+            self.listing_dir_path = ""
 
-    return TEX_DIR_PATH, MASTER_TEX_FILE_NAME, FILE_NAME_LIST, FIGURE_DIR
+    def __str__(self):
+        return "##### SETTING value #####\n\tconf file path:{}\n\tTexDir:{}\n\tMasterTex:{}\n\tFigDir:{}\n\tLisDir:{}\n\n\terror:{},\n\twarning:{}".format(
+            self.config_file_path, self.tex_dir_path, self.master_tex_file_path, self.figure_dir_path,
+            self.listing_dir_path, ",".join(self.error_str), ",".join(self.warning_str))
 
 
 def check_update(mtime_list):
@@ -96,10 +111,18 @@ def check_update(mtime_list):
 
 
 def update_figure():
-    fig_files = [TEX_DIR_PATH + FIGURE_DIR + "/" + f.name for f in os.scandir(TEX_DIR_PATH + FIGURE_DIR) if f.is_file() and f.name.split(".")[-1] in ["png", "jpg"]]
+    fig_files = [
+        TEX_DIR_PATH + FIGURE_DIR + "/" + f.name
+        for f in os.scandir(TEX_DIR_PATH + FIGURE_DIR)
+        if f.is_file() and f.name.split(".")[-1] in ["png", "jpg"]
+    ]
     for fig in fig_files:
         with open(fig[:fig.rfind(".")] + ".pdf", "wb") as f:
             f.write(img2pdf.convert(fig))
+
+
+# find tex files
+        FILE_NAME_LIST = [f.name for f in os.scandir(TEX_DIR_PATH) if f.is_file() and f.name.split(".")[-1] == "tex"]
 
 
 def watch(args):
@@ -123,8 +146,11 @@ def watch(args):
         while True:
             if check_update(mtime_list):
                 # tex to dvi
-                print("[update] {0}{1}.tex {2}".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME, datetime.datetime.now()), flush=True)
-                cmd = "cd {0} && platex -interaction nonstopmode {0}{1}.tex > {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
+                print(
+                    "[update] {0}{1}.tex {2}".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME, datetime.datetime.now()),
+                    flush=True)
+                cmd = "cd {0} && platex -interaction nonstopmode {0}{1}.tex > {0}output.txt".format(
+                    TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
                 process = (subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]).decode('utf-8')
 
                 # check log
@@ -145,7 +171,8 @@ def watch(args):
 
                 if error_flag is False:
                     # make pdf
-                    cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
+                    cmd = "cd {0} && dvipdfmx -o {0}{1}.pdf {0}{1}.dvi >> {0}output.txt".format(
+                        TEX_DIR_PATH, MASTER_TEX_FILE_NAME)
                     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
                 else:
                     # delete aux files
