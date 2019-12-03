@@ -120,9 +120,17 @@ class SETTINGS():
             self.listing_dir_path = ""
 
     def __str__(self):
-        return "##### SETTING value #####\n\tconf file path:{}\n\tTexDir:{}\n\tMasterTex:{}\n\tFigDir:{}\n\tLisDir:{}\n\n\terror:{}\n\twarning:{}".format(
-            self.config_file_path, self.tex_dir_path, self.master_tex_file_path, self.figure_dir_path,
-            self.listing_dir_path, ",".join(self.error_str), ",".join(self.warning_str))
+        return_strs = "##### SETTING value #####\n"
+        return_strs += "\tconf file path:{}\n".format(self.config_file_path)
+        return_strs += "\tTexDir:{}\n".format(self.tex_dir_path)
+        return_strs += "\tMasterTex:{}\n".format(self.master_tex_file_path)
+        return_strs += "\tFigDir:{}\n".format(self.figure_dir_path)
+        return_strs += "\tLisDir:{}\n".format(self.listing_dir_path)
+        return_strs += "\n"
+        return_strs += "\terror:{}\n".format(",".join(self.error_str))
+        return_strs += "\twarning:{}\n".format(",".join(self.warning_str))
+
+        return return_strs
 
 
 class TexHandler(PatternMatchingEventHandler):
