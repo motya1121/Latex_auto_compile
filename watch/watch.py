@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import sys
 import configparser
 import datetime
 import subprocess
@@ -68,6 +69,9 @@ class SETTINGS():
                 error_flag = True
         if error_flag is True:
             self.error_str.append("[error] 設定ファイルが見つかりませんでした．")
+            print("[error] 設定ファイルが見つかりませんでした．")
+            print("設定ファイルの指定方法は-hで確認してください．")
+            sys.exit(1)
 
     def SetConfigValue(self):
 
