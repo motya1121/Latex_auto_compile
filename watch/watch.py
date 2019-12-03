@@ -7,6 +7,7 @@ import configparser
 import datetime
 import subprocess
 import time
+import glob
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 import img2pdf
@@ -202,7 +203,9 @@ class TexHandler(PatternMatchingEventHandler):
             subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
         else:
             # delete aux files
-            os.remove("{0}.aux".format(self.settings.master_tex_file_path[:-4]))
+            for rm_file in glob.glob(self.settings.tex_dir_path + '*.aux'):
+                if os.path.isfile(rm_file):
+                    os.remove(rm_file)
 
     def on_moved(self, event):
         self._run_typeset()
