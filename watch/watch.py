@@ -13,8 +13,8 @@ import img2pdf
 
 class WATCH():
 
-    def __init__(self, config_file_path: str):
-        self.settings = SETTINGS(config_file_path)
+    def __init__(self, args: str):
+        self.settings = SETTINGS(args)
 
     def watch(self):
         event_handler = TexHandler(self.settings)
@@ -39,15 +39,16 @@ class WATCH():
 
 class SETTINGS():
 
-    def __init__(self, config_file_path: str):
+    def __init__(self, args: str):
         self.config_file_path = ""
         self.tex_dir_path = ""
         self.master_tex_file_path = ""
         self.figure_dir_path = ""
         self.listing_dir_path = ""
+        self.print_warning = args.print_warning
         self.error_str = []
         self.warning_str = []
-        self.SetConfigFilePath(config_file_path)
+        self.SetConfigFilePath(args.config_file)
         if len(self.error_str) == 0:
             self.SetConfigValue()
 
@@ -187,7 +188,7 @@ class TexHandler(PatternMatchingEventHandler):
             if error_count != 0:
                 print(error_messages)
                 print("--------------------\n".join(error_messages))
-            if warning_count != 0:
+            if warning_count != 0 and self.settings.print_warning is True:
                 print("".join(warning_messages))
 
         if error_flag is False:

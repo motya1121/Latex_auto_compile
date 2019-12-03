@@ -7,10 +7,9 @@ from watch import watch
 
 parser = argparse.ArgumentParser(description='Texファイルのオートコンパイル')
 parser.add_argument('-cf', '--config_file', help="Configファイルの位置", default=os.getcwd() + "/" + "latex_auto_compile.conf")
+parser.add_argument('-w', '--print_warning', help="Warningを表示する", action='store_true')
 
 args = parser.parse_args()
-print(args.config_file)
-print(os.getcwd())
-watch = watch.WATCH(args.config_file)
+watch = watch.WATCH(args)
 print(watch.settings)
 watch.watch()
