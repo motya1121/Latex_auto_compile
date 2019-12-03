@@ -149,18 +149,46 @@ class TexHandler(PatternMatchingEventHandler):
         # check log
         with open(self.settings.tex_dir_path + "output.txt", "r", encoding="utf8", errors='ignore') as logfile:
             line_list = logfile.readlines()
-            print_flag = 0
+            line_count = 1
+            error_line_count = 0
+            error_count = -1
+            error_messages = []
+            warning_line_count = 0
+            warning_count = -1
+            warning_messages = []
             error_flag = False
             for line in line_list:
+                # check error and warning
                 if line[0] == "!":
-                    print("[error]")
-                    print_flag = 1
+                    # print("[error] output.txt l.{}".format(line_count))
+                    error_line_count = 1
+                    error_count += 1
+                    error_messages.append("[error] output.txt l.{}\n".format(line_count))
                     error_flag = True
-                if print_flag != 0:
-                    print(line.replace("\n", ""))
-                    print_flag += 1
-                if print_flag == 10:
-                    print_flag = 0
+                if line.startswith("LaTeX Warning"):
+                    # print("[warning] output.txt l.{}".format(line_count))
+                    warning_line_count = 1
+                    warning_count += 1
+                    warning_messages.append("[warning] output.txt l.{}\n".format(line_count))
+
+                # get error and warning message
+                if error_line_count != 0:
+                    error_messages[-1] += "\t" + line
+                    error_line_count += 1
+                if warning_line_count != 0:
+                    warning_messages[-1] += "\t" + line
+                    warning_line_count += 1
+
+                if error_line_count == 10:
+                    error_line_count = 0
+                if warning_line_count == 2:
+                    warning_line_count = 0
+                line_count += 1
+            if error_count != 0:
+                print(error_messages)
+                print("--------------------\n".join(error_messages))
+            if warning_count != 0:
+                print("".join(warning_messages))
 
         if error_flag is False:
             # make pdf
