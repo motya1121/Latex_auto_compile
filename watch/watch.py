@@ -190,10 +190,10 @@ class TexHandler(PatternMatchingEventHandler):
                 if warning_line_count == 2:
                     warning_line_count = 0
                 line_count += 1
-            if error_count != 0:
+            if error_count != -1:
                 print(error_messages)
                 print("--------------------\n".join(error_messages))
-            if warning_count != 0 and self.settings.print_warning is True:
+            if warning_count != -1 and self.settings.print_warning is True:
                 print("".join(warning_messages))
 
         if error_flag is False:
