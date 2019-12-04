@@ -11,6 +11,7 @@ import glob
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 import img2pdf
+import tempfile
 
 
 class WATCH():
@@ -227,11 +228,15 @@ class FigHandler(PatternMatchingEventHandler):
         self.settings = settings
 
     def _run_convert(self, pic_file_path):
-        try:
-            with open(pic_file_path[:pic_file_path.rfind(".")] + ".pdf", "wb") as f:
-                f.write(img2pdf.convert(pic_file_path))
-        except Exception:
-            pass
+        with tempfile.NamedTemporaryFile("w+") as temp_f:
+            cmd = "convert {org_path} -background white -alpha remove -alpha off {temp_path}".format(
+                org_path=pic_file_path, temp_path=temp_f.name)
+            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+            try:
+                with open(pic_file_path[:pic_file_path.rfind(".")] + ".pdf", "wb") as f:
+                    f.write(img2pdf.convert(temp_f.name))
+            except Exception:
+                pass
 
     def on_moved(self, event):
         self._run_convert(event.src_path)
