@@ -229,9 +229,9 @@ class FigHandler(PatternMatchingEventHandler):
 
     def _run_convert(self, pic_file_path):
         with tempfile.NamedTemporaryFile("w+") as temp_f:
-            cmd = "convert {org_path} -background white -alpha remove -alpha off {temp_path}".format(
+            cmd = 'convert "{org_path}" -background white -alpha remove -alpha off "{temp_path}"'.format(
                 org_path=pic_file_path, temp_path=temp_f.name)
-            subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, shell=True)
+            subprocess.run(cmd, shell=True)
             try:
                 with open(pic_file_path[:pic_file_path.rfind(".")] + ".pdf", "wb") as f:
                     f.write(img2pdf.convert(temp_f.name))
