@@ -206,7 +206,10 @@ class TexHandler(PatternMatchingEventHandler):
             # delete aux files
             for rm_file in glob.glob(self.settings.tex_dir_path + '*.aux'):
                 if os.path.isfile(rm_file):
-                    os.remove(rm_file)
+                    try:
+                        os.remove(rm_file)
+                    except PermissionError:
+                        print("ゴミファイルをうまく削除できませんでした")
 
     def on_moved(self, event):
         self._run_typeset()
