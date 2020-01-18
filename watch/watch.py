@@ -40,15 +40,17 @@ class WATCH():
         Fig_observer.join()
 
     def typeset_once(self):
+        event_handler = TexHandler(self.settings)
+        event_handler._run_typeset()
+        event_handler._run_typeset()
+        event_handler._run_typeset()
+
+    def update_pdf(self):
         figs = glob.glob(self.settings.figure_dir_path + "/*.png")
         figs.extend(glob.glob(self.settings.figure_dir_path + "/*.jpg"))
         event_handler = FigHandler(self.settings)
         for fig in figs:
             event_handler._run_convert(pic_file_path=fig)
-        event_handler = TexHandler(self.settings)
-        event_handler._run_typeset()
-        event_handler._run_typeset()
-        event_handler._run_typeset()
 
 
 class SETTINGS():
