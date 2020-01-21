@@ -18,7 +18,7 @@ print(watch.settings)
 if args.typeset_once is True or args.update_picture is True or args.typeset_picture is True:
     if args.update_picture is True or args.typeset_picture is True:
         watch.update_pdf()
-    if args.update_picture is True or args.typeset_once is True:
+    if args.typeset_once is True or args.typeset_picture is True:
         watch.typeset_once()
 else:
     watch.watch()
