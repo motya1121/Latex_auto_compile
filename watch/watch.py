@@ -169,7 +169,7 @@ class TexHandler(PatternMatchingEventHandler):
 
     def _run_typeset(self):
         # tex to dvi
-        print("[update] {0} {1}".format(self.settings.master_tex_file_path, datetime.datetime.now()), flush=True)
+        print("\n[update] {0} {1}".format(self.settings.master_tex_file_path, datetime.datetime.now()), flush=True)
         cmd = "cd {0} && platex -interaction nonstopmode {1} > {0}output.txt".format(
             self.settings.tex_dir_path, self.settings.master_tex_file_path)
         subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True).communicate()[0]
@@ -253,6 +253,10 @@ class FigHandler(PatternMatchingEventHandler):
 
     def _run_convert(self, pic_file_path):
         with tempfile.NamedTemporaryFile("w+") as temp_f:
+            print(
+                "\n[create] {0}.pdf {1}".format(
+                    os.path.splitext(os.path.basename(pic_file_path))[0], datetime.datetime.now()),
+                flush=True)
             cmd = 'convert "{org_path}" -background white -alpha remove -alpha off "{temp_path}"'.format(
                 org_path=pic_file_path, temp_path=temp_f.name)
             subprocess.run(cmd, shell=True)
