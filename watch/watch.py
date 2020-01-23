@@ -32,6 +32,7 @@ class WATCH():
 
         try:
             while True:
+                self.print_date_time()
                 time.sleep(1)
         except KeyboardInterrupt:
             Tex_observer.stop()
@@ -51,6 +52,13 @@ class WATCH():
         event_handler = FigHandler(self.settings)
         for fig in figs:
             event_handler._run_convert(pic_file_path=fig)
+
+    def print_date_time(self):
+        print(
+            '\033[2K\033[G' + "[now time] " + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            end='',
+            file=sys.stderr,
+            flush=True)
 
 
 class SETTINGS():
