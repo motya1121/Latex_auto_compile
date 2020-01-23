@@ -69,6 +69,7 @@ class SETTINGS():
         self.master_tex_file_path = ""
         self.figure_dir_path = ""
         self.listing_dir_path = ""
+        self.interval_sec = 0
         self.print_warning = args.print_warning
         self.error_str = []
         self.warning_str = []
@@ -147,6 +148,15 @@ class SETTINGS():
         except KeyError:
             self.listing_dir_path = ""
 
+        # check interval second(option)
+        try:
+            if config['LATEX']['INTERVAL_SEC'] is None:
+                self.interval_sec = 10
+            else:
+                self.interval_sec = int(config['LATEX']['INTERVAL_SEC'])
+        except KeyError:
+            self.listing_dir_path = ""
+
     def __str__(self):
         return_strs = "##### SETTING value #####\n"
         return_strs += "\tconf file path:{}\n".format(self.config_file_path)
@@ -154,6 +164,7 @@ class SETTINGS():
         return_strs += "\tMasterTex:{}\n".format(self.master_tex_file_path)
         return_strs += "\tFigDir:{}\n".format(self.figure_dir_path)
         return_strs += "\tLisDir:{}\n".format(self.listing_dir_path)
+        return_strs += "\tinterval sec:{}\n".format(self.interval_sec)
         return_strs += "\n"
         return_strs += "\terror:{}\n".format(",".join(self.error_str))
         return_strs += "\twarning:{}\n".format(",".join(self.warning_str))
@@ -166,8 +177,14 @@ class TexHandler(PatternMatchingEventHandler):
     def __init__(self, settings: SETTINGS, patterns: list = ["*.tex"]):
         super(TexHandler, self).__init__(patterns=patterns)
         self.settings = settings
+        self.last_typeset_time = datetime.datetime.now()
 
     def _run_typeset(self):
+        if (datetime.datetime.now() - self.last_typeset_time).total_seconds() <= self.settings.interval_sec:
+            print("\n[update] タイプセットはしません {0}".format(datetime.datetime.now()), flush=True)
+            return 0
+        self.last_typeset_time = datetime.datetime.now()
+
         # tex to dvi
         print("\n[update] {0} {1}".format(self.settings.master_tex_file_path, datetime.datetime.now()), flush=True)
         cmd = "cd {0} && platex -interaction nonstopmode {1} > {0}output.txt".format(
