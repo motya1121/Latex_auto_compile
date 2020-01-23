@@ -259,7 +259,7 @@ class FigHandler(PatternMatchingEventHandler):
                 flush=True)
             cmd = 'convert "{org_path}" -background white -alpha remove -alpha off "{temp_path}"'.format(
                 org_path=pic_file_path, temp_path=temp_f.name)
-            subprocess.run(cmd, shell=True)
+            subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             try:
                 with open(pic_file_path[:pic_file_path.rfind(".")] + ".pdf", "wb") as f:
                     f.write(img2pdf.convert(temp_f.name))
@@ -267,7 +267,7 @@ class FigHandler(PatternMatchingEventHandler):
                 pass
 
     def on_moved(self, event):
-        self._run_convert(event.src_path)
+        self._run_convert(event.dest_path)
 
     def on_created(self, event):
         self._run_convert(event.src_path)
