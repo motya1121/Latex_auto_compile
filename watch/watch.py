@@ -42,9 +42,9 @@ class WATCH():
 
     def typeset_once(self):
         event_handler = TexHandler(self.settings)
-        event_handler._run_typeset()
-        event_handler._run_typeset()
-        event_handler._run_typeset()
+        event_handler._run_typeset(is_forced=True)
+        event_handler._run_typeset(is_forced=True)
+        event_handler._run_typeset(is_forced=True)
 
     def update_pdf(self):
         figs = glob.glob(self.settings.figure_dir_path + "/*.png")
@@ -179,8 +179,9 @@ class TexHandler(PatternMatchingEventHandler):
         self.settings = settings
         self.last_typeset_time = datetime.datetime.now()
 
-    def _run_typeset(self):
-        if (datetime.datetime.now() - self.last_typeset_time).total_seconds() <= self.settings.interval_sec:
+    def _run_typeset(self, is_forced=False):
+        if (datetime.datetime.now() -
+                self.last_typeset_time).total_seconds() <= self.settings.interval_sec and is_forced is False:
             print("\n[update] タイプセットはしません {0}".format(datetime.datetime.now()), flush=True)
             return 0
         self.last_typeset_time = datetime.datetime.now()
