@@ -20,14 +20,14 @@ class WATCH():
         self.settings = SETTINGS(args)
 
     def watch(self):
-        event_handler = TexHandler(self.settings)
+        Tex_event_handler = TexHandler(self.settings)
         Tex_observer = Observer()
-        Tex_observer.schedule(event_handler, self.settings.tex_dir_path, recursive=True)
+        Tex_observer.schedule(Tex_event_handler, self.settings.tex_dir_path, recursive=True)
         Tex_observer.start()
 
-        event_handler = FigHandler(self.settings)
+        Fig_event_handler = FigHandler(self.settings)
         Fig_observer = Observer()
-        Fig_observer.schedule(event_handler, self.settings.figure_dir_path, recursive=True)
+        Fig_observer.schedule(Fig_event_handler, self.settings.figure_dir_path, recursive=True)
         Fig_observer.start()
 
         try:
@@ -41,17 +41,17 @@ class WATCH():
         Fig_observer.join()
 
     def typeset_once(self):
-        event_handler = TexHandler(self.settings)
-        event_handler._run_typeset(is_forced=True)
-        event_handler._run_typeset(is_forced=True)
-        event_handler._run_typeset(is_forced=True)
+        Tex_event_handler = TexHandler(self.settings)
+        Tex_event_handler._run_typeset(is_forced=True)
+        Tex_event_handler._run_typeset(is_forced=True)
+        Tex_event_handler._run_typeset(is_forced=True)
 
     def update_pdf(self):
         figs = glob.glob(self.settings.figure_dir_path + "/*.png")
         figs.extend(glob.glob(self.settings.figure_dir_path + "/*.jpg"))
-        event_handler = FigHandler(self.settings)
+        Fig_event_handler = FigHandler(self.settings)
         for fig in figs:
-            event_handler._run_convert(pic_file_path=fig)
+            Fig_event_handler._run_convert(pic_file_path=fig)
 
     def print_date_time(self):
         print(
