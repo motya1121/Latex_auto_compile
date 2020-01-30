@@ -33,6 +33,9 @@ class WATCH():
         try:
             while True:
                 self.print_date_time()
+                if int((datetime.datetime.now() -
+                        Tex_event_handler.last_typeset_time).total_seconds()) == self.settings.interval_sec:
+                    Tex_event_handler._run_typeset(is_forced=True, is_typesettime_update=False)
                 time.sleep(1)
         except KeyboardInterrupt:
             Tex_observer.stop()
@@ -179,12 +182,13 @@ class TexHandler(PatternMatchingEventHandler):
         self.settings = settings
         self.last_typeset_time = datetime.datetime.now()
 
-    def _run_typeset(self, is_forced=False):
+    def _run_typeset(self, is_forced=False, is_typesettime_update=True):
         if (datetime.datetime.now() -
                 self.last_typeset_time).total_seconds() <= self.settings.interval_sec and is_forced is False:
             print("\n[update] タイプセットはしません {0}".format(datetime.datetime.now()), flush=True)
             return 0
-        self.last_typeset_time = datetime.datetime.now()
+        if is_typesettime_update is True:
+            self.last_typeset_time = datetime.datetime.now()
 
         # tex to dvi
         print("\n[update] {0} {1}".format(self.settings.master_tex_file_path, datetime.datetime.now()), flush=True)
