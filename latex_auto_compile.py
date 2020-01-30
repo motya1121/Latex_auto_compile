@@ -1,4 +1,4 @@
-#!/usr/local/var/pyenv/shims/python3.6
+#!/usr/local/pyenv/shims/python3.6
 # coding: utf-8
 
 import os
@@ -11,10 +11,14 @@ parser.add_argument('-w', '--print_warning', help="Warningを表示する", acti
 parser.add_argument('-t', '--typeset_once', help="1回だけタイプセットする", action='store_true')
 parser.add_argument('-p', '--update_picture', help="画像の更新だけする", action='store_true')
 parser.add_argument('-tp', '--typeset_picture', help="1回だけタイプセットする(画像の更新も行う)", action='store_true')
+parser.add_argument('-rtf', '--rtf', help="RTF形式に変換する", action='store_true')
 
 args = parser.parse_args()
 watch = watch.WATCH(args)
 print(watch.settings)
+if args.rtf is True:
+    watch.generate_rtf()
+    exit()
 if args.typeset_once is True or args.update_picture is True or args.typeset_picture is True:
     if args.update_picture is True or args.typeset_picture is True:
         watch.update_pdf()

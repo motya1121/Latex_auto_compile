@@ -56,6 +56,12 @@ class WATCH():
         for fig in figs:
             Fig_event_handler._run_convert(pic_file_path=fig)
 
+    def generate_rtf(self):
+        texs = glob.glob(self.settings.tex_dir_path + "/*.tex")
+        for tex in texs:
+            cmd = 'latex2rtf "{tex_path}"'.format(tex_path=tex)
+            subprocess.run(cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
     def print_date_time(self):
         print(
             '\033[2K\033[G' + "[now time] " + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
